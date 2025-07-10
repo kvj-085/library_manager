@@ -5,12 +5,17 @@ import BookList from './components/BookList';
 import AuthorList from './components/AuthorList';
 import BooksByAuthor from './components/BooksByAuthor';
 import LoginPage from './components/LoginPage';
+import WeatherWidget from './components/WeatherWidget';
 import './App.css';
 
 const App = () => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [weather, setWeather] = useState(() => {
+    const stored = localStorage.getItem('weather');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   // Session timeout configuration (30 minutes)
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
@@ -154,10 +159,31 @@ const App = () => {
     }, 10000);
   };
 
-  const handleLogin = useCallback((username) => {
+  const fetchWeather = useCallback(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `http://127.0.0.1:8000/weather/?lat=${latitude}&lon=${longitude}`
+          );
+          const data = await res.json();
+          setWeather(data);
+        } catch {
+          setWeather(null);
+        }
+      });
+    }
+  }, []);
+
+  const handleLogin = useCallback((username, weatherData) => {
     setUser(username);
     setSessionExpired(false);
     updateActivity();
+    setWeather(weatherData);
+    if (weatherData) {
+      localStorage.setItem('weather', JSON.stringify(weatherData));
+    }
   }, [updateActivity]);
 
   const handleLogout = useCallback(() => {
@@ -292,6 +318,7 @@ const App = () => {
                 Session active
               </span>
             </p>
+            {weather && <WeatherWidget weather={weather} />}
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button

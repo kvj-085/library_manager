@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import WeatherWidget from './WeatherWidget';
 
 const LoginPage = ({ onLogin }) => {
   const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    city: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [weather, setWeather] = useState(null);
 
   // Clear errors when form data changes
   useEffect(() => {
@@ -17,6 +20,9 @@ const LoginPage = ({ onLogin }) => {
     }
     if (errors.password && formData.password) {
       setErrors(prev => ({ ...prev, password: '' }));
+    }
+    if (errors.city && formData.city) {
+      setErrors(prev => ({ ...prev, city: '' }));
     }
   }, [formData, errors]);
 
@@ -35,6 +41,10 @@ const LoginPage = ({ onLogin }) => {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -45,6 +55,20 @@ const LoginPage = ({ onLogin }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const fetchWeatherByCity = async (city) => {
+    try {
+      const res = await fetch(
+        `http://127.0.0.1:8000/weather/?city=${encodeURIComponent(city)}`
+      );
+      const data = await res.json();
+      setWeather(data);
+      return data;
+    } catch {
+      setWeather(null);
+      return null;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +99,9 @@ const LoginPage = ({ onLogin }) => {
       localStorage.setItem('user', user);
       localStorage.setItem('loginTime', new Date().toISOString());
       
-      onLogin(user);
+      // Fetch weather by city after login
+      const weatherData = await fetchWeatherByCity(formData.city.trim());
+      onLogin(user, weatherData);
     } catch (err) {
       console.error('Login error:', err);
       
@@ -128,6 +154,7 @@ const LoginPage = ({ onLogin }) => {
               disabled={isLoading}
               className={errors.username ? 'error' : ''}
               autoComplete="username"
+              style={{ width: '100%' }}
             />
             {errors.username && (
               <span className="error-message">{errors.username}</span>
@@ -148,6 +175,7 @@ const LoginPage = ({ onLogin }) => {
                 disabled={isLoading}
                 className={errors.password ? 'error' : ''}
                 autoComplete="current-password"
+                style={{ width: '100%' }}
               />
               <button
                 type="button"
@@ -160,6 +188,25 @@ const LoginPage = ({ onLogin }) => {
             </div>
             {errors.password && (
               <span className="error-message">{errors.password}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="city">City</label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              placeholder="Enter your city"
+              value={formData.city}
+              onChange={handleInputChange}
+              disabled={isLoading}
+              className={errors.city ? 'error' : ''}
+              autoComplete="address-level2"
+              style={{ width: '100%' }}
+            />
+            {errors.city && (
+              <span className="error-message">{errors.city}</span>
             )}
           </div>
 
@@ -197,6 +244,8 @@ const LoginPage = ({ onLogin }) => {
           </div>
         </div>
       </div>
+
+      {weather && <WeatherWidget weather={weather} />}
 
       <style jsx>{`
         .login-container {
@@ -272,6 +321,8 @@ const LoginPage = ({ onLogin }) => {
           font-size: 16px;
           transition: all 0.2s ease;
           background: #fafbfc;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .form-group input:focus {

@@ -17,6 +17,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import Form
 
+import os
+import requests
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
 
@@ -212,3 +219,27 @@ def login(username: str = Form(...), password: str = Form(...)):
     if username in fake_users and fake_users[username] == password:
         return {"message": "Login successful", "username": username}
     raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.get("/weather/")
+def get_weather(lat: float = None, lon: float = None, city: str = None):
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        return JSONResponse(status_code=500, content={"error": "Weather API key not set"})
+    if city:
+        url = (
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?q={city}&units=metric&appid={api_key}"
+        )
+    elif lat is not None and lon is not None:
+        url = (
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?lat={lat}&lon={lon}&units=metric&appid={api_key}"
+        )
+    else:
+        return JSONResponse(status_code=400, content={"error": "City or coordinates required"})
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return JSONResponse(status_code=500, content={"error": "Failed to fetch weather"})
