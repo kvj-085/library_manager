@@ -13,6 +13,7 @@ This is a Python-based RESTful API for managing authors and their books, built w
 - View all books by a specific author
 - Lightweight SQLite database
 - Interactive API docs at `/docs`
+- **Weather display for any city:** When logging in, users enter their city and see the current weather (with emoji) for that city, fetched live from OpenWeatherMap.
 
 ---
 
