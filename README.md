@@ -75,8 +75,9 @@ pip install -r requirements.txt
 # Run the App
 python -m uvicorn main:app --reload  (to run backend)
 npm start (to run frontend) 
-> PS: you should `npm install` the first time 
 ```
+> PS: you should `npm install` the first time 
+
 
 > NOTE: Visit [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for Swagger UI.
 
